@@ -337,7 +337,7 @@ Node* RotateRL (Node* & ptr) {
 }
 
 public:
-    multiset():_size(0), root(nullptr) {}
+    multiset(): _size(0), root(nullptr) {}
     size_t size() const { return _size; }
     bool empty() const { return _size == 0; }
     size_t height() const { return root == nullptr ? 0 : root->height(); }
@@ -351,11 +351,25 @@ public:
         _size = 0;
     }
     ~multiset() { clear(); }
+
     multiset(std::initializer_list<_Tp> il): _size(0), root(nullptr) {
         for(auto i = il.begin(); i != il.end(); i++) {
             insert(*i);
         }
     }
+
+    multiset(const multiset& ms): _size(ms._size), root(nullptr) {
+        for(auto i = ms.begin(); i != ms.end(); i++) {
+            insert(*i);
+        }
+    }
+
+    multiset(multiset&& ms): _size(ms._size), root(ms.root) {
+        ms._size = 0;
+        ms.root = nullptr;
+    }
+
+    class iterator;
 
     class iterator: public std::iterator<std::bidirectional_iterator_tag, _Tp> {
     friend class multiset;
@@ -511,7 +525,19 @@ public:
         return reverse_iterator(cur);
     }
 
+    reverse_iterator crbegin() const {
+        Node* cur = root;
+        while(cur->right != nullptr) {
+            cur = cur->right;
+        }
+        return reverse_iterator(cur);
+    }
+
     reverse_iterator rend() {
+        return reverse_iterator(nullptr);
+    }
+
+    reverse_iterator crend() const {
         return reverse_iterator(nullptr);
     }
 
@@ -593,21 +619,25 @@ public:
             }else if(_Compare()(cur->data, val)) {
                 cur = cur->right;
             }else{
-                return iterator(cur);
+                return iterator(cur, root);
             }
         }
         return end();
     }
 
+    iterator erase(iterator&& it){
+        return erase(it);
+    }
+
     iterator erase(iterator& it){
-        _size--;
         Node* cur = it._node;
         auto tmp = cur;
         if(cur == nullptr) {
             return end();
         }
+        _size--;
         if(cur->next == nullptr && cur->prev == nullptr) {
-            return iterator(erase_node(cur));
+            return iterator(erase_node(cur), root);
         }else if(cur->next != nullptr && cur->prev == nullptr){
             cur = cur->next;
             cur->prev = nullptr;
@@ -621,7 +651,7 @@ public:
             tmp->prev->next = cur;
         }
         delete tmp;
-        return iterator(cur);
+        return iterator(cur, root);
     }
 
     iterator erase(const _Tp& val){
@@ -631,19 +661,19 @@ public:
         }
         auto node = it._node;
         if(node->next == nullptr) {
-            return iterator(erase_node(node));
+            return erase(it);
         }else{
             auto tmp = node;
             while(tmp->next != nullptr) {
                 tmp = tmp->next;
             }
             while(tmp->prev != nullptr) {
-                auto it = iterator(tmp);
+                auto it = iterator(tmp, root);
                 auto nx = tmp->prev;
                 erase(it);
                 tmp = nx;
             }
-            return iterator(erase_node(tmp));
+            return erase(iterator(tmp, root));
         }
     }
 

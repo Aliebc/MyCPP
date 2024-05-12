@@ -57,6 +57,7 @@ int maint(){
     printf("Erase Test: \n");
     ms.erase(ft);
     ms.erase(5);
+    printf("Size: %d\n", (int)ms.size());
     printf("Advance Test: \n");
     auto it = ms.begin();
     std::advance(it, 7);
@@ -79,5 +80,6 @@ int main(){
     maint<YX::multiset<xint>>();
     printf("=================std::multiset====================\n");
     maint<std::multiset<xint>>();
+    printf("================================================\n");
     return 0;
 }

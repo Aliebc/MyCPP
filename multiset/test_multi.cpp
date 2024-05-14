@@ -13,6 +13,7 @@ public:
     bool operator<(const xint &rhs) const {return x < rhs.x;}
     bool operator==(const xint &rhs) const {return x == rhs.x;}
     operator int() const {return x;}
+    xint operator=(const xint &rhs) = delete;
     ~xint() {
         if(copy)
             printf("Destruct %d\n", x);
@@ -54,9 +55,16 @@ int maint(){
         std::cout << "101 is not in the multiset." << std::endl;
     }
     auto ft = ms.find(58);
+    
     printf("Erase Test: \n");
     ms.erase(ft);
     ms.erase(5);
+    ms.erase(58);
+    ms.erase(6);
+    ms.erase(7);
+    ms.erase(98);
+    ms.erase(77);
+    
     printf("Size: %d\n", (int)ms.size());
     printf("Advance Test: \n");
     auto it = ms.begin();

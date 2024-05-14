@@ -17,17 +17,30 @@
 
 namespace YX {
 
-template <class _Tp>
+template <class _Tp, class _Alloc = std::allocator<_Tp>>
 struct _Node{
-    _Tp data;
+    _Tp* data;
     _Node* left;
     _Node* right;
     _Node* parent;
     _Node* next;
     _Node* prev;
+    typedef _Alloc allocator_type;
+    allocator_type alloc;
     _Node(): left(nullptr), right(nullptr), next(nullptr), parent(nullptr), prev(nullptr){}
     _Node(const _Tp& d, _Node* l = nullptr, _Node* r = nullptr, _Node* p = nullptr): 
-    data(d), left(l), right(r), parent(p), next(nullptr), prev(nullptr) {}
+    left(l), right(r), parent(p), next(nullptr), prev(nullptr) {
+        data = alloc.allocate(1);
+        alloc.construct(data, d);
+    }
+    void move_data(_Node* node){
+        alloc.destroy(data);
+        alloc.deallocate(data, 1);
+        data = node->data;
+        node->data = nullptr;
+    }
+    _Tp&& operator*() { return *data; }
+    operator _Tp() { return *data; }
     void l(_Node<_Tp> * left) { 
         auto cur = this;
         cur->left = left;
@@ -100,7 +113,13 @@ struct _Node{
     inline bool balance(){
         return bfactor() >= -1 && bfactor() <= 1;
     }
-    ~_Node() = default;
+    ~_Node(){
+        if(data != nullptr) {
+            alloc.destroy(data);
+            alloc.deallocate(data, 1);
+            data = nullptr;
+        }
+    }
     void clear(){
         if(prev == nullptr){
             if(left != nullptr) {
@@ -146,7 +165,7 @@ template <class _Tp, class _Compare = std::less<_Tp>, class _Alloc = std::alloca
 class multiset {
 private:
 
-typedef _Node<_Tp> Node;
+typedef _Node<_Tp, _Alloc> Node;
 size_t _size;
 Node *root;
 
@@ -193,7 +212,8 @@ Node * erase_node(Node * node){
     }else{
         auto tmp = node->right;
         if(tmp->left == nullptr && tmp->right == nullptr) {
-            node->data = tmp->data;
+            //node->data = tmp->data;
+            node->move_data(tmp);
             node->next = tmp->next;
             if(tmp->next != nullptr) {
                 tmp->next->prev = node;
@@ -202,7 +222,8 @@ Node * erase_node(Node * node){
             node->right = nullptr;
            
         }else if(tmp->left == nullptr) {
-            node->data = tmp->data;
+            //node->data = tmp->data;
+            node->move_data(tmp);
             node->next = tmp->next;
             if(tmp->next != nullptr) {
                 tmp->next->prev = node;
@@ -214,7 +235,8 @@ Node * erase_node(Node * node){
             while(tmp->left != nullptr) {
                 tmp = tmp->left;
             }
-            node->data = tmp->data;
+            //node->data = tmp->data;
+            node->move_data(tmp);
             node->next = tmp->next;
             node->prev = tmp->prev;
             tmp->parent->left = tmp->right;
@@ -385,7 +407,7 @@ public:
         bool operator!=(const iterator& val) { return _node != val._node; }
         Node* address(){return _node;}
         ~iterator() = default;
-        _Tp& operator*() { return _node->data; }
+        _Tp& operator*() { return *_node->data; }
         void info(){ _node->info();}
 
         iterator operator++(int){
@@ -550,7 +572,7 @@ public:
         }else{
             Node* cur = root;
             while(true) {
-                if(_Compare()(val, cur->data)) {
+                if(_Compare()(val, *cur->data)) {
                     if(cur->left == nullptr) {
                         cur->left = new Node(val, nullptr, nullptr, cur);
                         cur->l(cur->left);
@@ -559,7 +581,7 @@ public:
                     }else{
                         cur = cur->left;
                     }
-                }else if(_Compare()(cur->data, val)){
+                }else if(_Compare()(*cur->data, val)){
                     if(cur->right == nullptr) {
                         cur->right = new Node(val, nullptr, nullptr, cur);
                         cur->r(cur->right);
@@ -614,9 +636,9 @@ public:
     iterator find(const _Tp& val) {
         Node* cur = root;
         while(cur != nullptr) {
-            if(_Compare()(val, cur->data)) {
+            if(_Compare()(val, *cur->data)) {
                 cur = cur->left;
-            }else if(_Compare()(cur->data, val)) {
+            }else if(_Compare()(*cur->data, val)) {
                 cur = cur->right;
             }else{
                 return iterator(cur, root);
